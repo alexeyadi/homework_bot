@@ -58,7 +58,7 @@ def get_api_answer(current_timestamp=1) -> dict:
 
 
 def check_response(response) -> list:
-    """Answer API is correctly?"""
+    """Check API answer."""
     if response.get('homeworks'):
         logger.info('Получен корректный ответ от API')
         return response.get('homeworks')
