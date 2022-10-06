@@ -4,7 +4,9 @@ from telegram import Bot
 import requests
 import time
 import logging
+import exceptions
 import sys
+from http import HTTPStatus
 from logging import StreamHandler
 
 
@@ -49,19 +51,35 @@ def get_api_answer(current_timestamp=1) -> dict:
     """Get answer from API Praktikum."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params).json()
-    if response:
-        logger.info('Получен доступ к API')
-        return response
-    else:
-        logger.error('API Яндекса не доступно')
+    try:
+        response = requests.get(
+            ENDPOINT, headers=HEADERS, params=params)
+    except Exception as error:
+        logger.error(f'Ошибка получения API: {error}')
+    if response.status_code != HTTPStatus.OK:
+        message = (f'Ошибка: статус страницы {response.status_code}')
+        logger.error(message)
+        raise exceptions.ResponseException(message)
+    try:
+        return response.json()
+    except Exception:
+        logger.error('Невалидный json')
 
 
 def check_response(response) -> list:
     """Check API answer."""
-    if response.get('homeworks'):
+    if not isinstance(response, dict):
+        message = (f'Неверный тип данных: {dict}')
+        raise TypeError(message)
+    homework = response.get('homeworks')
+    if homework is None:
+        raise exceptions.ResponseExeption('Данных нет')
+    elif not isinstance(homework, list):
+        message = (f'Неверный тип данных: {list}')
+        raise TypeError(message)
+    elif homework:
         logger.info('Получен корректный ответ от API')
-        return response.get('homeworks')
+        return homework
     else:
         logger.error('Некорректный API')
         return None
@@ -73,8 +91,13 @@ def parse_status(homework) -> str:
     homework_status = homework.get('status')
     if not homework_name:
         raise KeyError(f'Проблема с ключем: {homework_name}')
+    if homework_status not in HOMEWORK_STATUSES:
+        message = (
+            f'Отсутствует ключ {homework_status}')
+        logger.error(message)
+        raise KeyError(message)
     verdict = HOMEWORK_STATUSES.get(homework_status)
-    return verdict
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens() -> bool:
