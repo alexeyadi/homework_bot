@@ -1,2 +1,2 @@
-class ResponseExeption(Exception):
+class Response(Exception):
     pass
