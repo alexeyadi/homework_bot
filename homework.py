@@ -44,14 +44,14 @@ def send_message(bot, message) -> str:
 
 def get_api_answer(current_timestamp=1) -> dict:
     """Get answer from API Praktikum."""
-    logger.debug('Начинаем проверку ответа от API...')
+    logger.info('Начинаем проверку ответа от API...')
     timestamp = current_timestamp or int(time.time())
     request_params = {'params': {'from_date': timestamp}, 'headers': HEADERS,
                       'url': ENDPOINT}
     try:
         response = requests.get(**request_params)
     except Exception as error:
-        logger.error(f'Ошибка получения API: {error}')
+        raise exceptions.Response(f'Ошибка получения API: {error}')
     if response.status_code != HTTPStatus.OK:
         message = ('Ошибка: статус страницы'
                    f'{response.status_code}, {ENDPOINT}, {HEADERS}'
